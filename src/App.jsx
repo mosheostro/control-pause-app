@@ -464,6 +464,8 @@ export default function App() {
   const lastSec   = results.length ? results[results.length - 1].sec : null;
   const bestSec   = results.length ? Math.max.apply(null, results.map(function(r) { return r.sec; })) : null;
   const lastLevel = lastSec !== null ? getLevel(lastSec, t) : null;
+  // currentLevel is based on the CURRENT test (elapsed), not last saved result
+  const currentLevel = elapsed > 0 ? getLevel(elapsed, t) : null;
   const consultUrl = CONSULT_URLS[lang];
   var activeUser = users.find(function(u) { return u.id === activeUserId; });
   const userName = activeUser ? activeUser.name : "";
@@ -621,10 +623,11 @@ export default function App() {
               })}
             </div>
           </div>
-          {lastLevel && (
+          {/* Show current test result when done, otherwise last saved */}
+          {(phase === "done" ? currentLevel : lastLevel) && (
             <div className="status-badge">
-              <div className="status-dot" style={{ background: lastLevel.color }} />
-              {lastLevel.label} — {lastSec}s{userName ? " · " + userName : ""}
+              <div className="status-dot" style={{ background: (phase === "done" ? currentLevel : lastLevel).color }} />
+              {(phase === "done" ? currentLevel : lastLevel).label} — {phase === "done" ? elapsed : lastSec}s{userName ? " · " + userName : ""}
             </div>
           )}
           <div className="tabs">
@@ -663,12 +666,12 @@ export default function App() {
 
           {tab === 1 && (
             <>
-              {phase === "done" && lastLevel && (
-                <div className="result-box" style={{ borderColor: lastLevel.color }}>
-                  <div className="result-sec" style={{ color: lastLevel.color }}>{elapsed}</div>
+              {phase === "done" && currentLevel && (
+                <div className="result-box" style={{ borderColor: currentLevel.color }}>
+                  <div className="result-sec" style={{ color: currentLevel.color }}>{elapsed}</div>
                   <div className="timer-sec-label" style={{ color: "#64748b" }}>{t.timer.seconds}</div>
-                  <div className="result-label" style={{ color: lastLevel.color }}>{lastLevel.label}</div>
-                  <div className="result-desc">{lastLevel.desc}</div>
+                  <div className="result-label" style={{ color: currentLevel.color }}>{currentLevel.label}</div>
+                  <div className="result-desc">{currentLevel.desc}</div>
                 </div>
               )}
               <div className="card">
@@ -712,7 +715,8 @@ export default function App() {
               <div className="section-title">{t.scale.title}</div>
               <div className="section-sub">{t.scale.subtitle}</div>
               {t.scale.levels.map(function(lvl, i) {
-                var isActive = lastSec !== null && getLevel(lastSec, t).label === lvl.label;
+                var activeSec = phase === "done" ? elapsed : lastSec;
+                var isActive = activeSec !== null && getLevel(activeSec, t).label === lvl.label;
                 return (
                   <div key={i} className={"scale-row" + (isActive ? " active" : "")}
                     style={isActive ? { borderColor: lvl.color } : {}}>
